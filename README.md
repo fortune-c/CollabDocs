@@ -14,7 +14,7 @@ The goal of this project is to explore **backend engineering concepts** such as:
 
 ---
 
-# 🚀 Features
+# Features
 
 ### Core Features
 
@@ -39,7 +39,7 @@ The goal of this project is to explore **backend engineering concepts** such as:
 
 ---
 
-# 🏗 System Architecture
+# System Architecture
 
 ```
 Clients (Web / Mobile)
@@ -71,7 +71,7 @@ PostgreSQL (Persistent Storage)
 
 ---
 
-# ⚙️ Tech Stack
+# ⚙Tech Stack
 
 ### Backend
 
@@ -104,7 +104,7 @@ PostgreSQL (Persistent Storage)
 
 ---
 
-# 📂 Project Structure
+# Project Structure
 
 ```
 CollabDocs
@@ -132,7 +132,7 @@ CollabDocs
 
 ---
 
-# 🗄 Database Schema
+# Database Schema
 
 ### Users
 
@@ -189,7 +189,7 @@ DocumentEdit
 
 ---
 
-# 🔑 Authentication
+# Authentication
 
 Authentication is implemented using **JWT tokens**.
 
@@ -210,7 +210,7 @@ Roles:
 
 ---
 
-# 📡 Real-Time Collaboration
+# Real-Time Collaboration
 
 The system uses **SignalR** for WebSocket communication.
 
@@ -232,7 +232,7 @@ Users editing the same document join the same **SignalR group**.
 
 ---
 
-# ✏️ Editing Model
+# Editing Model
 
 Instead of sending full document updates, the system sends **operations**.
 
@@ -256,7 +256,7 @@ Operations are transformed using **Operational Transform (OT)** to resolve confl
 
 ---
 
-# ⚔️ Conflict Resolution
+# Conflict Resolution
 
 When multiple users edit the same document simultaneously, operations may conflict.
 
@@ -278,7 +278,7 @@ Resources:
 
 ---
 
-# ⚡ Distributed Synchronization
+# Distributed Synchronization
 
 To support **multiple backend servers**, the system uses **Redis pub/sub**.
 
@@ -294,7 +294,7 @@ When an edit happens:
 
 ---
 
-# 📜 Version History
+# Version History
 
 The system keeps track of document changes.
 
@@ -313,7 +313,7 @@ POST /documents/{id}/restore
 
 ---
 
-# 🐳 Running the Project
+# Running the Project
 
 ### Requirements
 
@@ -354,7 +354,7 @@ dotnet run
 
 ---
 
-# 📊 Load Testing
+# Load Testing
 
 Simulate multiple users editing documents using **k6**.
 
@@ -372,7 +372,7 @@ This helps test:
 
 ---
 
-# 📈 Monitoring
+# Monitoring
 
 Metrics are exported to **Prometheus** and visualized in **Grafana**.
 
@@ -385,7 +385,7 @@ Track:
 
 ---
 
-# 🧠 What This Project Demonstrates
+# What This Project Demonstrates
 
 This project showcases:
 
@@ -399,7 +399,7 @@ This project showcases:
 
 ---
 
-# 🔮 Future Improvements
+# Future Improvements
 
 Possible enhancements:
 
@@ -413,7 +413,7 @@ Possible enhancements:
 
 ---
 
-# 📚 Learning Resources
+# Learning Resources
 
 * ASP.NET Core Docs
   https://learn.microsoft.com/en-us/aspnet/core/
@@ -432,7 +432,7 @@ Possible enhancements:
 
 ---
 
-# 👨‍💻 Author
+# Author
 
 **Fortunate Adesina**
 
@@ -448,7 +448,7 @@ Interested in:
 
 ---
 
-# ⭐ Contributing
+# Contributing
 
 Contributions, suggestions, and feedback are welcome.
 
@@ -456,6 +456,6 @@ Feel free to open an **issue or pull request**.
 
 ---
 
-# 📄 License
+# License
 
 MIT License
