@@ -425,7 +425,7 @@ Possible enhancements:
   https://redis.io/docs/
 
 * Operational Transform Explained
-  https://neil.fraser.name/writing/ot/
+  
 
 * Designing Data-Intensive Applications
   Martin Kleppmann
