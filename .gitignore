@@ -124,3 +124,5 @@ src/.vs/config/applicationhost.config
 
 appsettings.Development.json
 appsettings.json
+
+.env

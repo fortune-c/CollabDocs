@@ -3,7 +3,7 @@
 This roadmap guides the development of a **Real-Time Collaborative
 Document System (Mini Google Docs Backend)** using:
 
--   ASP.NET Core (.NET 8)
+-   ASP.NET Core (.NET 10)
 -   SignalR (WebSockets)
 -   PostgreSQL
 -   Redis
@@ -18,8 +18,8 @@ systems, concurrency handling, and distributed architecture.
 
 ## Day 1 --- Project Setup
 
-Tasks: - Install .NET 8 SDK - Install Docker - Install PostgreSQL -
-Install Redis - Create ASP.NET Web API project
+Tasks: - Create ASP.NET Web API project - Install Docker - Install PostgreSQL through Docker -
+Install Redis through Docker
 
 Command:
 
