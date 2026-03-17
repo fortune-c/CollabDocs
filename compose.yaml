@@ -1,0 +1,33 @@
+﻿services:
+  collabdocs:
+    image: collabdocs
+    build:
+      context: .
+      dockerfile: Dockerfile
+  db:
+    image: postgres
+    restart: always
+    # set shared memory limit when docker compose
+    shm_size: 128mb
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_DB: collabdocs
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  redis:
+    image: redis
+    volumes: 
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: always
+    ports:
+      - 6379:6379
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    
+  
+
