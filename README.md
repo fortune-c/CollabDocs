@@ -335,7 +335,7 @@ cd collab-docs
 ### Start Infrastructure
 
 ```
-docker-compose up
+docker compose up
 ```
 
 This will start:
