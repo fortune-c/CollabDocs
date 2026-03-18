@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
         <PackageReference Include="DotEnvFile" Version="2.1.0" />
         <PackageReference Include="DotNetEnv" Version="3.1.1" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
@@ -20,8 +21,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="Api\" />
-      <Folder Include="Services\" />
+      <Folder Include="Api\Hubs\" />
+      <Folder Include="Infrastructure\Redis\" />
       <Folder Include="Tests\" />
     </ItemGroup>
 
