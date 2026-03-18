@@ -75,7 +75,7 @@ PostgreSQL (Persistent Storage)
 
 ### Backend
 
-* **ASP.NET Core (.NET 8)**
+* **ASP.NET Core (.NET 10)**
 * **C#**
 
 ### Real-Time Communication
@@ -317,7 +317,7 @@ POST /documents/{id}/restore
 
 ### Requirements
 
-* .NET 8
+* .NET 10
 * Docker
 * Docker Compose
 

@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using CollabDocs.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -33,12 +35,34 @@ public class Auth : ControllerBase
             email = result.user.Email
         });
     }
-
+    
     [HttpPost("login")]
-    public async Task<IActionResult> Login()
+    public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
     {
-        return Ok();
+        var result = await _authService.LoginAsync(loginRequest.Email, loginRequest.Password);
+
+        if (!result.Success)
+        {
+            return BadRequest(new { message = result.Message });
+        }
+
+        return Ok(new
+        {
+            message = result.Message,
+            token = result.Token,
+            id = result.user!.Id,
+            email = result.user.Email
+        });
+    }
+    
+    [HttpGet("me")]
+    [Authorize]
+    public IActionResult Me()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Ok($"Successfully authenticated as {userId}");
     }
 }
 
 public record RegisterRequest(string Email, string Password);
+public record LoginRequest(string Email, string Password);
