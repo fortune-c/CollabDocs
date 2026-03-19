@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace CollabDocs.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260317143337_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260319145907_migration-db1")]
+    partial class migrationdb1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -9,12 +9,12 @@ namespace CollabDocs.Api.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class Auth : ControllerBase
+public class AuthController : ControllerBase
 {
     
     private readonly AuthService _authService;
     
-    public Auth(AuthService authService)
+    public AuthController(AuthService authService)
     {
         _authService = authService;
     }

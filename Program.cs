@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using CollabDocs.Infrastructure.Database;
 using CollabDocs.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,9 +10,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options => 
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<DocumentService>();
 builder.Services.AddHealthChecks();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();

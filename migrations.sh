@@ -1,2 +1,2 @@
-dotnet ef migrations add ``name migrations`` # replace ``name migrations`` with migration name
+dotnet ef migrations add migration-db1 # replace migration name to a new name
 dotnet ef database update
