@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using CollabDocs.Api.Hubs;
 using CollabDocs.Infrastructure.Database;
 using CollabDocs.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -49,6 +50,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -59,6 +61,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.MapHub<DocumentHub>("/hubs/document");
 
 app.UseAuthentication();
 app.UseAuthorization();
