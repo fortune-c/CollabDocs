@@ -34,6 +34,12 @@ public class DocumentHub : Hub
 
         await Clients.Group(groupName).SendAsync("ReceiveEditOperation", operation);
     }
+
+    public async Task SendTestMesaage(Guid documentId, string message)
+    {
+        var groupName = $"document-{documentId}";
+        await Clients.Group(groupName).SendAsync("ReceiveTestMessage", message);
+    }
 }
 
 public record SendEditOperationRequest(Guid DocumentId, string OperationType, int Position, string? Text);
