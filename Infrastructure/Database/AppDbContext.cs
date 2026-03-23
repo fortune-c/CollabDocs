@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentPermission> DocumentPermissions => Set<DocumentPermission>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
+    public DbSet<DocumentEdit> DocumentEdits => Set<DocumentEdit>();
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
