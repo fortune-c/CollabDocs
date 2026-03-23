@@ -126,3 +126,4 @@ appsettings.Development.json
 appsettings.json
 
 .env
+/road_map.md

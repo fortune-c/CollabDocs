@@ -13,4 +13,6 @@ public class Document
     public User Owner { get; set; } = null!;
 
     public ICollection<DocumentPermission> Permissions { get; set; } = new List<DocumentPermission>();
+    
+    public ICollection<DocumentVersion> Versions { get; set; } = new List<DocumentVersion>();
 }

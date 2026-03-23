@@ -13,7 +13,8 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentPermission> DocumentPermissions => Set<DocumentPermission>();
-
+    public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -76,6 +77,28 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(dp => new { dp.DocumentId, dp.UserId })
+                .IsUnique();
+        });
+        
+        modelBuilder.Entity<DocumentVersion>(entity =>
+        {
+            entity.HasKey(v => v.Id);
+        
+            entity.Property(v => v.Content)
+                .IsRequired();
+        
+            entity.Property(v => v.VersionNumber)
+                .IsRequired();
+        
+            entity.Property(v => v.CreatedAt)
+                .IsRequired();
+        
+            entity.HasOne(v => v.Document)
+                .WithMany(d => d.Versions)
+                .HasForeignKey(v => v.DocumentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        
+            entity.HasIndex(v => new { v.DocumentId, v.VersionNumber })
                 .IsUnique();
         });
     }

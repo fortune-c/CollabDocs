@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using CollabDocs.Domain.Models;
 using CollabDocs.Infrastructure.Database;
 using CollabDocs.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -117,6 +118,21 @@ public class DocumentController : ControllerBase
 
         document.Title = request.Title;
         document.Content = request.Content;
+        
+        var latestVersionNumber = await _dbContext.DocumentVersions
+            .Where(v => v.DocumentId == document.Id)
+            .MaxAsync(v => (int?)v.VersionNumber) ?? 0;
+
+        var version = new DocumentVersion
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = document.Id,
+            Content = document.Content,
+            VersionNumber = latestVersionNumber + 1,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _dbContext.DocumentVersions.Add(version);
 
         await _dbContext.SaveChangesAsync();
         
@@ -154,34 +170,23 @@ public class DocumentController : ControllerBase
         }
     }
     
-    
-    /*
-    For sharing of document might implement this later if basic role checks works
-    [HttpPost("{id}/share")]
-    public async Task<IActionResult> ShareDocument(Guid id, [FromBody] ShareDocumentRequest request)
+    [Authorize]
+    [HttpGet("{id}/history")]
+    public async Task<IActionResult> GetHistory(Guid id)
     {
-        var ownerId = GetUserIdFromToken();
+        var result = await _documentService.GetHistoryAsync(id);
 
-        var canShare = await _permissionService.CanDeleteAsync(id, ownerId);
-        if (!canShare)
+        if (!result.Success)
         {
-            return Forbid();
+            return NotFound(new { message = result.Message });
         }
 
-        var permission = new DocumentPermission
+        return Ok(new
         {
-            Id = Guid.NewGuid(),
-            DocumentId = id,
-            UserId = request.UserId,
-            Role = request.Role
-        };
-
-        _dbContext.DocumentPermissions.Add(permission);
-        await _dbContext.SaveChangesAsync();
-
-        return Ok(new { message = "Document shared successfully." });
+            message = result.Message,
+            versions = result.Versions
+        });
     }
-    */
 }
 
 public record DocumentResponse(
