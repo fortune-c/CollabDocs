@@ -37,7 +37,8 @@ public class DocumentHub : Hub
                 request.OperationType,
                 request.Position,
                 request.Length,
-                request.Text
+                request.Text,
+                request.BaseVersion
             ),
             userId
         );
@@ -67,5 +68,5 @@ public class DocumentHub : Hub
     }
 }
 
-public record SendEditOperationRequest(Guid DocumentId, string OperationType, int Position, int? Length, string? Text);
+public record SendEditOperationRequest(Guid DocumentId, string OperationType, int Position, int? Length, string? Text, int BaseVersion);
 public record EditOperationResponse(Guid DocumentId, Guid UserId, string OperationType, int Position, string? Text, DateTime Timestamp);

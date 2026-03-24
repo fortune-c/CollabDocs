@@ -119,49 +119,74 @@ public class DocumentService
             return (false, "User is not allowed to edit this document.", null);
         }
 
+        var currentVersion = await _dbContext.DocumentVersions
+            .Where(v => v.DocumentId == request.DocumentId)
+            .Select(v => (int?)v.VersionNumber)
+            .MaxAsync() ?? 0;
+
+        var transformedRequest = request;
+
+        if (request.BaseVersion < currentVersion)
+        {
+            int editsToFetch = currentVersion - request.BaseVersion;
+            var priorEdits = await _dbContext.DocumentEdits
+                .Where(e => e.DocumentId == request.DocumentId)
+                .OrderByDescending(e => e.CreatedAt)
+                .Take(editsToFetch)
+                .ToListAsync();
+
+            priorEdits.Reverse(); // Process oldest to newest
+            transformedRequest = EditTransformService.Transform(request, priorEdits);
+        }
+
         var currentContent = document.Content;
         string updatedContent;
 
-        switch (request.OperationType.Trim().ToLowerInvariant())
+        switch (transformedRequest.OperationType.Trim().ToLowerInvariant())
         {
             case "insert":
-                if (request.Position < 0 || request.Position > currentContent.Length)
+                if (transformedRequest.Position < 0 || transformedRequest.Position > currentContent.Length)
                     return (false, "Invalid insert position.", null);
 
-                if (request.Text is null)
+                if (transformedRequest.Text is null)
                     return (false, "Insert text is required.", null);
 
-                updatedContent = currentContent.Insert(request.Position, request.Text);
+                updatedContent = currentContent.Insert(transformedRequest.Position, transformedRequest.Text);
                 break;
 
             case "delete":
-                if (request.Position < 0 || request.Position >= currentContent.Length)
+                if (transformedRequest.Position < 0 || transformedRequest.Position > currentContent.Length)
                     return (false, "Invalid delete position.", null);
 
-                if (request.Length is null || request.Length <= 0)
+                if (transformedRequest.Length is null || transformedRequest.Length < 0)
                     return (false, "Delete length is required.", null);
 
-                if (request.Position + request.Length > currentContent.Length)
+                if (transformedRequest.Position + transformedRequest.Length > currentContent.Length)
                     return (false, "Delete range exceeds document length.", null);
 
-                updatedContent = currentContent.Remove(request.Position, request.Length.Value);
+                // If length is 0 due to an overlapping delete transformation, content remains unchanged
+                updatedContent = transformedRequest.Length == 0 
+                    ? currentContent 
+                    : currentContent.Remove(transformedRequest.Position, transformedRequest.Length.Value);
                 break;
 
             case "replace":
-                if (request.Position < 0 || request.Position > currentContent.Length)
+                if (transformedRequest.Position < 0 || transformedRequest.Position > currentContent.Length)
                     return (false, "Invalid replace position.", null);
 
-                if (request.Length is null || request.Length < 0)
+                if (transformedRequest.Length is null || transformedRequest.Length < 0)
                     return (false, "Replace length is required.", null);
 
-                if (request.Position + request.Length > currentContent.Length)
+                if (transformedRequest.Position + transformedRequest.Length > currentContent.Length)
                     return (false, "Replace range exceeds document length.", null);
 
-                if (request.Text is null)
+                if (transformedRequest.Text is null)
                     return (false, "Replace text is required.", null);
 
-                updatedContent = currentContent.Remove(request.Position, request.Length.Value)
-                                               .Insert(request.Position, request.Text);
+                updatedContent = transformedRequest.Length == 0
+                    ? currentContent.Insert(transformedRequest.Position, transformedRequest.Text)
+                    : currentContent.Remove(transformedRequest.Position, transformedRequest.Length.Value)
+                                    .Insert(transformedRequest.Position, transformedRequest.Text);
                 break;
 
             default:
@@ -189,10 +214,11 @@ public class DocumentService
             Id = Guid.NewGuid(),
             DocumentId = document.Id,
             UserId = userId,
-            OperationType = request.OperationType,
-            Position = request.Position,
-            Length = request.Length,
-            Text = request.Text,
+            OperationType = transformedRequest.OperationType,
+            Position = transformedRequest.Position,
+            Length = transformedRequest.Length,
+            Text = transformedRequest.Text,
+            BaseVersion = request.BaseVersion,
             CreatedAt = DateTime.UtcNow
         });
 
@@ -213,4 +239,4 @@ public class DocumentService
 public record CreateDocumentRequest(string Title, string Content);
 public record UpdateDocumentRequest(string Title, string Content);
 public record DocumentVersionDto(Guid Id, Guid DocumentId, int VersionNumber, string Content, DateTime CreatedAt);
-public record ApplyEditOperationRequest(Guid DocumentId, string OperationType, int Position, int? Length, string? Text);
+public record ApplyEditOperationRequest(Guid DocumentId, string OperationType, int Position, int? Length, string? Text, int BaseVersion);
