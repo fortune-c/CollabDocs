@@ -5,11 +5,11 @@ namespace CollabDocs.Api.Hubs;
 
 public class DocumentHub : Hub
 {
-    private readonly DocumentService _documentService;
+    private readonly DocumentEditQueue _documentEditQueue;
 
-    public DocumentHub(DocumentService documentService)
+    public DocumentHub(DocumentEditQueue documentEditQueue)
     {
-        _documentService = documentService;
+        _documentEditQueue = documentEditQueue;
     }
     
     public async Task JoinDocument(Guid documentId)
@@ -31,7 +31,7 @@ public class DocumentHub : Hub
         var userId = Guid.Parse(Context.UserIdentifier!);
         var groupName = $"document-{request.DocumentId}";
         
-        var result = await _documentService.ApplyEditOperationAsync(
+        var operation = new QueuedEditOperation(
             new ApplyEditOperationRequest(
                 request.DocumentId,
                 request.OperationType,
@@ -40,25 +40,11 @@ public class DocumentHub : Hub
                 request.Text,
                 request.BaseVersion
             ),
-            userId
-        );
-
-        if (!result.Success)
-        {
-            await Clients.Group(groupName).SendAsync("EditRejected", result);
-            return;
-        }
-
-        var operation = new EditOperationResponse(
-            request.DocumentId,
             userId,
-            request.OperationType,
-            request.Position,
-            request.Text,
-            DateTime.UtcNow
+            Context.ConnectionId
         );
 
-        await Clients.Group(groupName).SendAsync("ReceiveEditOperation", operation);
+        await _documentEditQueue.EnqueueEditAsync(operation);
     }
 
     public async Task SendTestMesaage(Guid documentId, string message)

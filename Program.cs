@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddMemoryCache();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddControllers().AddJsonOptions(options => 
 {
@@ -19,6 +20,8 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<DocumentService>();
+builder.Services.AddSingleton<CollabDocs.Services.DocumentEditQueue>();
+builder.Services.AddHostedService<CollabDocs.Infrastructure.BackgroundServices.EditProcessingService>();
 builder.Services.AddHealthChecks();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();

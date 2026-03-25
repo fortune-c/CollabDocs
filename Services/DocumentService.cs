@@ -2,6 +2,7 @@ using CollabDocs.Domain.Enums;
 using CollabDocs.Domain.Models;
 using CollabDocs.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace CollabDocs.Services;
 
@@ -9,11 +10,13 @@ public class DocumentService
 {
     private readonly PermissionService _permissionService;
     private readonly AppDbContext _dbContext;
+    private readonly IMemoryCache _cache;
     
-    public DocumentService(PermissionService permissionService, AppDbContext dbContext)
+    public DocumentService(PermissionService permissionService, AppDbContext dbContext, IMemoryCache cache)
     {
         _permissionService = permissionService;
         _dbContext = dbContext;
+        _cache = cache;
     }
     
     // document creation
@@ -106,24 +109,31 @@ public class DocumentService
     // apply edit operation
     public async Task<(bool Success, string Message, string? UpdatedContent)> ApplyEditOperationAsync(ApplyEditOperationRequest request, Guid userId)
     {
-        var document = await _dbContext.Documents.FindAsync(request.DocumentId);
-
-        if (document == null)
-        {
-            return (false, "Document not found.", null);
-        }
-
         var canEdit = await _permissionService.CanEditAsync(request.DocumentId, userId);
         if (!canEdit)
         {
             return (false, "User is not allowed to edit this document.", null);
         }
 
-        var currentVersion = await _dbContext.DocumentVersions
-            .Where(v => v.DocumentId == request.DocumentId)
-            .Select(v => (int?)v.VersionNumber)
-            .MaxAsync() ?? 0;
+        var cacheKey = $"doc_state_{request.DocumentId}";
+        if (!_cache.TryGetValue(cacheKey, out CachedDocumentState docState))
+        {
+            var document = await _dbContext.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == request.DocumentId);
+            if (document == null)
+            {
+                return (false, "Document not found.", null);
+            }
 
+            var version = await _dbContext.DocumentVersions
+                .Where(v => v.DocumentId == request.DocumentId)
+                .Select(v => (int?)v.VersionNumber)
+                .MaxAsync() ?? 0;
+
+            docState = new CachedDocumentState(document.Content, version);
+            _cache.Set(cacheKey, docState, TimeSpan.FromHours(1));
+        }
+
+        var currentVersion = docState.VersionNumber;
         var transformedRequest = request;
 
         if (request.BaseVersion < currentVersion)
@@ -139,7 +149,7 @@ public class DocumentService
             transformedRequest = EditTransformService.Transform(request, priorEdits);
         }
 
-        var currentContent = document.Content;
+        var currentContent = docState.Content;
         string updatedContent;
 
         switch (transformedRequest.OperationType.Trim().ToLowerInvariant())
@@ -193,26 +203,26 @@ public class DocumentService
                 return (false, "Unsupported operation type.", null);
         }
 
-        document.Content = updatedContent;
+        docState = new CachedDocumentState(updatedContent, currentVersion + 1);
+        _cache.Set(cacheKey, docState, TimeSpan.FromHours(1));
 
-        var nextVersionNumber = await _dbContext.DocumentVersions
-            .Where(v => v.DocumentId == request.DocumentId)
-            .Select(v => (int?)v.VersionNumber)
-            .MaxAsync() ?? 0;
+        var docToUpdate = new Document { Id = request.DocumentId, Content = updatedContent };
+        _dbContext.Documents.Attach(docToUpdate);
+        _dbContext.Entry(docToUpdate).Property(d => d.Content).IsModified = true;
 
         _dbContext.DocumentVersions.Add(new DocumentVersion
         {
             Id = Guid.NewGuid(),
-            DocumentId = document.Id,
+            DocumentId = request.DocumentId,
             Content = updatedContent,
-            VersionNumber = nextVersionNumber + 1,
+            VersionNumber = docState.VersionNumber,
             CreatedAt = DateTime.UtcNow
         });
 
         _dbContext.DocumentEdits.Add(new DocumentEdit
         {
             Id = Guid.NewGuid(),
-            DocumentId = document.Id,
+            DocumentId = request.DocumentId,
             UserId = userId,
             OperationType = transformedRequest.OperationType,
             Position = transformedRequest.Position,
@@ -240,3 +250,4 @@ public record CreateDocumentRequest(string Title, string Content);
 public record UpdateDocumentRequest(string Title, string Content);
 public record DocumentVersionDto(Guid Id, Guid DocumentId, int VersionNumber, string Content, DateTime CreatedAt);
 public record ApplyEditOperationRequest(Guid DocumentId, string OperationType, int Position, int? Length, string? Text, int BaseVersion);
+public record CachedDocumentState(string Content, int VersionNumber);
