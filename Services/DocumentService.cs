@@ -1,8 +1,11 @@
 using CollabDocs.Domain.Enums;
 using CollabDocs.Domain.Models;
 using CollabDocs.Infrastructure.Database;
+using CollabDocs.Infrastructure.Redis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using StackExchange.Redis;
+using System.Text.Json;
 
 namespace CollabDocs.Services;
 
@@ -11,12 +14,14 @@ public class DocumentService
     private readonly PermissionService _permissionService;
     private readonly AppDbContext _dbContext;
     private readonly IMemoryCache _cache;
+    private readonly IConnectionMultiplexer _redis;
     
-    public DocumentService(PermissionService permissionService, AppDbContext dbContext, IMemoryCache cache)
+    public DocumentService(PermissionService permissionService, AppDbContext dbContext, IMemoryCache cache, IConnectionMultiplexer redis)
     {
         _permissionService = permissionService;
         _dbContext = dbContext;
         _cache = cache;
+        _redis = redis;
     }
     
     // document creation
@@ -233,6 +238,9 @@ public class DocumentService
         });
 
         await _dbContext.SaveChangesAsync();
+
+        var payload = new DocumentStateUpdatePayload(request.DocumentId, updatedContent, docState.VersionNumber);
+        await _redis.GetSubscriber().PublishAsync("doc_state_update", JsonSerializer.Serialize(payload));
 
         return (true, "Edit applied successfully.", updatedContent);
     }

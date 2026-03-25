@@ -6,10 +6,13 @@ using CollabDocs.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+var redisConnectionString = builder.Configuration.GetConnectionString("RedisConnection") ?? "localhost:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect(redisConnectionString));
 builder.Services.AddMemoryCache();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddControllers().AddJsonOptions(options => 
@@ -22,6 +25,7 @@ builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<DocumentService>();
 builder.Services.AddSingleton<CollabDocs.Services.DocumentEditQueue>();
 builder.Services.AddHostedService<CollabDocs.Infrastructure.BackgroundServices.EditProcessingService>();
+builder.Services.AddHostedService<CollabDocs.Infrastructure.Redis.RedisCacheInvalidator>();
 builder.Services.AddHealthChecks();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
@@ -53,7 +57,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 builder.Services.AddAuthorization();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR().AddStackExchangeRedis(redisConnectionString);
 
 var app = builder.Build();
 
