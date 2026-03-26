@@ -111,6 +111,61 @@ public class DocumentService
             return (true, "History loaded successfully.", versions);
         }
     
+    // document version restore
+    public async Task<(bool Success, string Message, string? UpdatedContent)> RestoreVersionAsync(Guid documentId, int targetVersionNumber, Guid userId)
+    {
+        var targetVersion = await _dbContext.DocumentVersions
+            .FirstOrDefaultAsync(v => v.DocumentId == documentId && v.VersionNumber == targetVersionNumber);
+
+        if (targetVersion == null)
+            return (false, "Target version not found.", null);
+
+        var document = await _dbContext.Documents.AsNoTracking().FirstOrDefaultAsync(d => d.Id == documentId);
+        if (document == null)
+            return (false, "Document not found.", null);
+
+        var currentVersion = await _dbContext.DocumentVersions
+            .Where(v => v.DocumentId == documentId)
+            .MaxAsync(v => (int?)v.VersionNumber) ?? 0;
+
+        var cacheKey = $"doc_state_{documentId}";
+        var docState = new CachedDocumentState(targetVersion.Content, currentVersion + 1);
+        _cache.Set(cacheKey, docState, TimeSpan.FromHours(1));
+
+        var docToUpdate = new Document { Id = documentId, Content = targetVersion.Content };
+        _dbContext.Documents.Attach(docToUpdate);
+        _dbContext.Entry(docToUpdate).Property(d => d.Content).IsModified = true;
+
+        _dbContext.DocumentVersions.Add(new DocumentVersion
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = documentId,
+            Content = targetVersion.Content,
+            VersionNumber = currentVersion + 1,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        _dbContext.DocumentEdits.Add(new DocumentEdit
+        {
+            Id = Guid.NewGuid(),
+            DocumentId = documentId,
+            UserId = userId,
+            OperationType = "replace",
+            Position = 0,
+            Length = document.Content.Length,
+            Text = targetVersion.Content,
+            BaseVersion = currentVersion,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await _dbContext.SaveChangesAsync();
+
+        var payload = new DocumentStateUpdatePayload(documentId, targetVersion.Content, currentVersion + 1);
+        await _redis.GetSubscriber().PublishAsync("doc_state_update", JsonSerializer.Serialize(payload));
+
+        return (true, "Version restored successfully.", targetVersion.Content);
+    }
+    
     // apply edit operation
     public async Task<(bool Success, string Message, string? UpdatedContent)> ApplyEditOperationAsync(ApplyEditOperationRequest request, Guid userId)
     {

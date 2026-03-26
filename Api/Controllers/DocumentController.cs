@@ -187,7 +187,35 @@ public class DocumentController : ControllerBase
             versions = result.Versions
         });
     }
+
+    [Authorize]
+    [HttpPost("{id}/restore")]
+    public async Task<IActionResult> RestoreVersion(Guid id, [FromBody] RestoreVersionRequest request)
+    {
+        var userId = GetUserIdFromToken();
+        var canEdit = await _permissionService.CanEditAsync(id, userId);
+
+        if (!canEdit)
+        {
+            return Forbid();
+        }
+
+        var result = await _documentService.RestoreVersionAsync(id, request.VersionNumber, userId);
+
+        if (!result.Success)
+        {
+            return NotFound(new { message = result.Message });
+        }
+
+        return Ok(new
+        {
+            message = result.Message,
+            updatedContent = result.UpdatedContent
+        });
+    }
 }
+
+public record RestoreVersionRequest(int VersionNumber);
 
 public record DocumentResponse(
     Guid Id,
