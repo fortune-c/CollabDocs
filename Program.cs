@@ -7,8 +7,21 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using Serilog;
+using Prometheus;
+using System.Threading.RateLimiting;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
 
 // Add services to the container.
 var redisConnectionString = builder.Configuration.GetConnectionString("RedisConnection") ?? "localhost:6379";
@@ -26,7 +39,23 @@ builder.Services.AddScoped<DocumentService>();
 builder.Services.AddSingleton<CollabDocs.Services.DocumentEditQueue>();
 builder.Services.AddHostedService<CollabDocs.Infrastructure.BackgroundServices.EditProcessingService>();
 builder.Services.AddHostedService<CollabDocs.Infrastructure.Redis.RedisCacheInvalidator>();
-builder.Services.AddHealthChecks();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString() ?? "anon",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+    options.RejectionStatusCode = 429;
+});
+
+builder.Services.AddHealthChecks().ForwardToPrometheus();
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -71,8 +100,14 @@ if (app.Environment.IsDevelopment())
 
 app.MapHub<DocumentHub>("/hubs/document");
 
+app.UseSerilogRequestLogging();
+app.UseRateLimiter();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseMetricServer();
+app.UseHttpMetrics();
 
 app.MapHealthChecks("/health");
 app.UseHttpsRedirection();

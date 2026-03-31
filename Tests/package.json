@@ -4,12 +4,14 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/k6": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@microsoft/signalr": "^10.0.0"
+    "@microsoft/signalr": "^10.0.0",
+    "k6": "^0.0.0"
   }
 }

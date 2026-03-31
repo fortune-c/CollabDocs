@@ -41,24 +41,38 @@ The goal of this project is to explore **backend engineering concepts** such as:
 
 # System Architecture
 
+```mermaid
+graph TD
+    Client["Clients (Web/Mobile)"] -->|WebSocket / HTTP API| API["ASP.NET Core Backend API"]
+    API --> Auth["Authentication Service"]
+    API --> Doc["Document Service (Queue & Logic)"]
+    API --> Hub["Collaboration Hub (SignalR)"]
+    
+    Hub <-->|Backplane Broadcast| Redis["Redis Pub/Sub"]
+    Doc <-->|Cache Invalidations| Redis
+    
+    Doc <-->|Persistence & Ledger| DB[("PostgreSQL DB")]
+    
+    Prom["Prometheus"] -->|Scrape /metrics| API
+    Grafana["Grafana"] --> Prom
 ```
-Clients (Web / Mobile)
-        │
-        ▼
-WebSocket / HTTP API
-        │
-        ▼
-ASP.NET Core Backend
-   ├── Authentication Service
-   ├── Document Service
-   ├── Collaboration Hub (SignalR)
-        │
-        ▼
-Redis (Pub/Sub Messaging)
-        │
-        ▼
-PostgreSQL (Persistent Storage)
-```
+
+# API Documentation
+
+The Web API uses standard REST architecture and is fully documented via Swagger OpenAPI.
+When running the development server, navigate to `/swagger/index.html` to test endpoints like:
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/document/{id}`
+- `GET /api/document/{id}/history`
+- `POST /api/document/{id}/restore`
+
+# Scaling Strategy
+
+1.  **Stateless API Instances:** The ASP.NET Core API is containerized and maintains zero local lock state.
+2.  **Horizontal Scale Out:** Spin up multiple `collabdocs` API containers using Docker Swarm or Kubernetes.
+3.  **Redis Interconnection:** The SignalR Redis Backplane forces all instances to share WebSockets transparently, handling thousands of concurrent users in parallel, while Redis Pub/Sub concurrently invalidates in-memory caches instantly across all nodes.
+4.  **Database Throttling Elimination:** Heavy `SELECT` queries are mitigated using `IMemoryCache` on active editors, cutting database load drastically.
 
 ### Flow of an Edit Operation
 
@@ -334,15 +348,17 @@ cd collab-docs
 
 ### Start Infrastructure
 
-```
-docker compose up
+```bash
+docker compose up -d --build
 ```
 
-This will start:
+This will automatically start your entire stack including:
 
-* PostgreSQL
-* Redis
-* API server
+*   **collabdocs** (API server on port `5000`)
+*   **db** (PostgreSQL on port `5432`)
+*   **redis** (Redis Server on port `6379`)
+*   **prometheus** (Metrics on port `9090`)
+*   **grafana** (Monitoring on port `3000`)
 
 ---
 
@@ -356,12 +372,12 @@ dotnet run
 
 # Load Testing
 
-Simulate multiple users editing documents using **k6**.
+Simulate multiple users editing and pinging documents using **k6**, validating rate limits and concurrent handling.
 
-Example:
+Example execution using the typed script implemented in the `Tests` folder:
 
-```
-k6 run load-test.js
+```bash
+k6 run Tests/loadtest.ts
 ```
 
 This helps test:
@@ -436,7 +452,7 @@ Possible enhancements:
 
 **Fortunate Adesina**
 
-Software Engineering Student | Backend & Systems Developer
+Software Engineering | Backend & Systems Developer
 
 Interested in:
 

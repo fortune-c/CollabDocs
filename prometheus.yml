@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'collabdocs'
+    static_configs:
+      - targets: ['collabdocs:8080']

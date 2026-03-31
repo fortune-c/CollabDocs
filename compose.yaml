@@ -1,9 +1,14 @@
-﻿services:
+services:
   collabdocs:
     image: collabdocs
     build:
       context: .
       dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - DefaultConnection=Host=db;Database=collabdocs;Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      - RedisConnection=redis:6379
   db:
     image: postgres
     restart: always
@@ -28,6 +33,17 @@
     restart: always
     ports:
       - 8080:8080
-    
   
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: always
 
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    restart: always
